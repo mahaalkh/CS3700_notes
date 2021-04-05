@@ -1,0 +1,341 @@
+Basic Idea: 
+  - Users bring their own resources to the table 
+  - A cooperative model 
+
+Benefits: 
+ - Scalability: number of "servers" grows with users 
+ 	 - Bring Your Own Resources (storage, CPU, Band Width (b/w))
+ - Reliability: load spread across many peers 
+ 	 - Probability of them *all* failing is **very** low
+ - Efficienty: peers are distributed 
+     - Peers can try and get service from nearby peers 
+
+ Challanges: 
+   ---- key components ----
+     - Communication 
+     - Service/data 
+   ---- Reliability ----
+     - Network reachability : i.e : NATs
+     - Dealing with churn : i.e : short peer uptimes 
+   ---- Security -----
+     - Malicious peers and cheating 
+     - the Sybil attack: one peer acts like multiple peers 
+
+
+ =====================================================
+
+ Topics: 
+   1) Unstructured P2P
+   2) BitTorrent Basics 
+   3) Cheating on BitTorrent
+
+
+================== Centralized Approach =================
+  The origin: Napster
+  	Uses a centralized index server
+  	 - Support all queries 
+  	Downfall ==>: caused by centralization of liability 
+  	    - could have been cause by the the failure of the index server
+
+============= Unstructured P2P applications =============
+  - Centralization systems have a single point of failure 
+  - Response: fully unstructured P2P 
+      - No central servers, peers only connect with each other 
+      - Queries sent as controlled flood 
+      - Later systems are hierarchial for performance reasons 
+  - Limitations
+      - Bootstrapping: >> how to join without central knowledge?  
+      - Floods of traffic == high network overhead 
+      - Probabilistic: can only search a small portion of the system 
+      - Uncommon files are easily lost 
+
+
+  ------------- Gnutella --------------
+  - First massively popular unstructured P2P application 
+    - Justin Frakel, Nullsoft, 2000
+    - AOL was not happy at all 
+  - Original design: flat network 
+  - Recent incarnatiosns use hierachical structure 
+  ------ Problems: 
+    - Highbanwidth costs in control messages 
+    - Flood of queries take up a lot of b/w which took up all available bandwidth for dialup users
+  Problems with Flood Search: 
+    - Redundency, High overhead 
+    - If a file is rare or far away, we have no guarantee of finding it
+   - Resilient to random failures but not attacks
+=============================================================
+
+============== Hierarchical P2P =====================
+
+  Examples: Kazaa, Groskter, Morpheus, Gnutella++
+
+  Advatages to hierarchy: 
+     - Improves scalability 
+     - Limits flooding 
+  Potential Problems:
+     - What is a supernode leaves the network? 
+  - No guarantee of performance 
+
+
+=======================================================
+
+============= Skype: P2P VolP ==============
+
+  - Before Microsoft centralized their architecture, it was P2P client supportin VoIP, video, and text based conversation, buddy lists, etc.
+      - Based on Kazaa network (FastTrack)
+      - Overlay P2P network consisting of ordinary and Super Nodes (SN)
+      - Ordinary node connects to network through a Super Node
+    - Each user registers with a central server
+      - User information propagated in a decentralized fashion
+    - Uses a variant of STUN to identify the type of NAT and firewall
+
+===============================================
+================== BitTorrent ====================
+ ------------ BitTorrent Basics ----------
+  - Designed for fast, efficient content distribution
+    -  Ideal for large files, e.g. movies, DVDs, ISOs, etc.
+    - Uses P2P file swarming
+  - Not a full fledged P2P system
+    - Does not support searching for files
+    - File swarms must be located out-of-band
+    - Trackers acts a centralized swarm coordinators
+      - Fully P2P, trackerless torrents are now possible
+  - Insanely popular
+    - 35-70% of all Internet traffic
+
+  --------- Components ---------
+  1) Tracker (Highly specialized webserver, built on top of HTTP)
+    -> Keeps a database of swarms 
+      - Swarms identified by torrent hash  
+      - State of each peer in each swarm 
+       - IP address, port, peer ID, TTL 
+       - Status: leaching or seeding 
+       - -Optional- upload/download stats (to track fairness)
+      - Returns a random list of peers to new leechers 
+  2) Swarm 
+    a) Seeder(s)  
+    b) Leecher(s)
+  3) Torrent Site(s): 
+    ------------------------
+    -> Standard web servers 
+      - Allow users to upload .torrent 
+      - Search, rating, comments, etc. 
+    -> Some host trackers 
+    -> Many ones are famous: mostly because they host illegal content 
+    -> Legitimate .torrents: 
+     - Linux deistros 
+     - World of Warcraft patches
+     ---------------------------
+
+    a) .torrent file: tells you everything about a given file, and where to go to start dowloading it 
+     - Contains all meta-data related to a torrent: 
+        - File name(s), sizes 
+        - Torrent hash: hash of the whole file
+        - URL of tracker(s)
+     - BitTorrent breaks files into pieces 
+       - 64 KB - 1 MB per piece 
+       - .torrent contains the size and SHA-1 hash of each piece 
+    -----------------------------------------
+    --------- Peer Selection -------------
+    Tracker provides each peer with a list of peers 
+      Which peers are best? 
+       a) Truthful (not cheating)
+       b) Fastest bandwidth 
+
+    How to select peers? 
+       >> Used by BitTorrent
+      (First Option) Learn dynamically 
+        - Try downloading from many peers 
+        - Keep only the best peers 
+      << 
+      (Second Option) Use external information 
+        - Some torrent client prefer peers in the same ISP 
+     -----------------------------------------
+
+     -------------- Sharing Pieces -----------
+       The initial seeder give different parts of the file to each of the leechers so that the leechers can share the different parts of the file with each other
+     ------------------------------------------
+     ----------- The beauty of bitTorrent -----------
+      * More leechers = more replicas of pieces
+      * More replicas = faster downloads
+       - Multiple, redundant sources for each piece 
+      * Even while downloading, leecherd take load off the seed(s)
+       - Great for content distribution 
+       - Cost is shared among the swarm
+     ------------------------------------------------
+     ---------- Sub-Pieces and Pipelining ----------
+     -  Each piece is broken into sub-pieces
+        - ~16 KB in size
+
+     -  TCP Pipelining
+        - For performance, you want long lived TCP connections (to get out of slow start)
+        - Peers generally request 5 sub-pieces at a time
+        - When one finished, immediately request another
+        - Do NOT start a new piece until previous is complete
+          - Prioritizes complete pieces
+          - Only complete pieces can be shared with other peers
+      ---------------------------------------------- 
+      ---------------- Piece Selection --------------
+      - Piece download order is critical 
+       -> Worst-case scenario: all leacherd have identical pieces: 
+        - Nobody can share anything 
+       -> Worst case scenario: the initial seed disapeers 
+        - If a piece is missing from the swarm, the torrent is broken 
+      +++ The best strategy for selecting pieces? 
+            Depends on how many pieces you already have: 
+
+      ------------------------------------------------
+      Download Phases: 
+       0% - 5% downloaded (Bootstrap: random selection)
+            - Initialy, you have no pieces to trade 
+            - Essentially, beg for free pieces at random 
+        5% - 50% downloaded (Steady-state: rarest piece first) 
+            - Ensures that common pieces are saved for the last 
+        50% - 100% downloaded: (Endgame)
+            - Simultaneously request final pieces from multiple peers 
+            - Cancel connections to slow peers 
+            - Ensure that final pieces arrive quickly 
+        ---------------------------------------------- 
+        ====== BitTorrent Protocol Fundematals ====== 
+        - BitTorreny divides time into rounds
+          - each round (typically 30 seconds), decide who to upload to/download from 
+        - Each connection to a peer is controlled by four states
+          - (do I want a piece from you?):
+            (yes) Interested / (no) UnInterested
+          -  (am I courrently downloading from you?): 
+             (yes) Chocked / (no) UnChocked 
+        - Connections are bidirectional: 
+         - You decide (Interest/Choking) on each peer 
+         - Each peer decides (Interest/Chocking) on you 
+        ==============================================
+        Connection States: look at slides 
+        ==============================================
+        Upload and Download Control: 
+          How does a peer decide who to trade with? 
+           Use the incentive mechanism:
+             - Based on **tit-for-tat** game theory 
+               Basically: 
+                * if you give me a piece to me, I'll give a piece to you
+                * if you screw me over over, you get nothing 
+                Mechanisms:= choking and optimistic unchoke
+
+        ------------------------------
+          Iterated prisoner's dilemma 
+             2 players, multiple rounds: 
+             - Both players agree: +2 points each 
+             - One player defects: +5 for defactor, +0 to other
+             - Both players defect: +0 for each 
+            Best way to use prisoner's dilemma for bitTorrent: 
+             --- tit for tat --- 
+             a) Initially: cooperate
+             b) If peer cooperates --> cooperate next round 
+             c) If peer defects--> defect next round 
+             --------------------
+             Choking: *Choke == temporary refusal to upload* 
+              - Tit-for-tat: choke free riders
+              - cap the number od simultaneous uploads: 
+                 because too many connections congests you network
+              - periodically unchoke to test the network connection --> chocked peer might have better bandwidth 
+
+              --------------------
+              Optimistic Unchoking 
+               - Each peer has one optimistic unchoke slot: 
+                 > uploads to one random peer
+                 > Peer rotates every 30 seconds 
+               - Why optimisitcally unchoke? 
+                 > Help to bootstrap peers without pieces
+                 > Discover new peers with fast connections
+              -------------------
+              Upload only mode: 
+                Once a peer completes a torrent --> it becomes a seed: 
+                > no downloads --> no tit-for-tat 
+                > who do you upload to first? 
+                  - ** bitTorrent ** upload to fastest peer because faster uploads = more available pieces ==> more available pieces helps the swarm 
+              ---------------------
+              ** Trackerless bitTorrents can exist based on a P2P overlay (DHT) 
+              ---------Incentives to Upload ------
+               -  Every round, a BitTorrent client calculates the number of pieces received from each peer
+                  > The peers who gave the most will receive pieces in the next round
+                  > These decisions are made by the unchoker
+                Assumption
+                  >  Peers will give as many pieces as possible each round
+                  > Based on bandwidth constraints, etc.
+              -------------------------------------
+              ============ Abusing the Unchocker (peer unchockes peer who uploaded the 4 largest amount of data sent)==========
+              1) "come in last" Try to send just enough data to get 4th place 
+              2) Sibil attack:  
+                 Divide resources and act as multiple peers 
+              ==============================================
+              ===============BitTyrant (Unfair Unchocker) ==================
+                Piatek et al. 2007
+                  > Implements the “come in last strategy”
+                  > Faster than stock BitTorrent
+                    For the Tyrant user
+                Problem with BitTyrant
+                  > Tragedy of the commons
+                  > BitTyrant performs well if most peers are honest
+                  > As more peers use BitTyrant, performace suffers
+                  > If all users used BitTyrant, torrents wouldn’t work at all
+              =========================================
+
+              In order to mitigate "come in last" and Sybil attacks 
+              -------- PropShare Unchocker ---------- 
+                Levin et al. 2008
+                 > Propose PropShare unchoker
+                 > PropShare clients allocate upload bandwidth proportionally across all peers
+                 > There is no longer a “top four”
+              -----works against the "come in last attack" and the sybil attacks ---- 
+              ======= Unchoker Summary ========== 
+              - BitTyrant and PropShare are both faster than stock BitTorrent
+                > But for different reasons (BitTyrant is an unfair unchoker, Propshare is honest)
+              - PropShare performs comparably to BitTyrant
+              - PropShare does not suffer from a tragedy of the commons
+                > i.e. it’s safe for all peers to use PropShare
+                > ** Not true for BitTyrant
+              =====================================
+             == AbusingOptimistic Unchoking ==
+              So far, assumed peers all have pieces to trade
+                Thus, all peers are interesting
+              What about peers that have nothing?
+                The bootstrap mechanism is supposed to help them
+                Optimistic unchoke: reserve some bandwidth to give free pieces away (presumably to new peers)
+
+              -------------------- 
+              BitThief (Locher et al. 2006)
+                - Abuses optimistic unchoke, uploads nothing
+                - Swarm collapses if all peers use BitThief
+              --------------- BitThief Details ---------
+              Large-view exploit 
+               - Bit thief client tries to get optimistic unchock from as many peers as it can  --> it does not upload anything to the peer --> only gets one thing from each peer 
+
+               How do we prevent this from happening? 
+                > Enlist the help of peers (what if those peers are not honest?) and have them them verify that a given client uploads 
+                ===============================
+
+                === Abusing the Endgame ===
+                Since rare pieces are valuable (you are popular, many people want to trade with you --> more trading partners = faster downloads)
+
+                ----
+                How can we cheat? 
+                 - Selective piece revelation (cannot advertise pieces that you do not have but can hide about pieces that you do have)
+                 - Why is this useful?
+                    Pieces sent at time t impact your popularity at time t+1
+                    Sending common pieces first, monopolize rare pieces
+              -----------
+     BitTorrent is an extremely efficient tool for content distribution
+       - Strong incentive system based on game theory
+        - Most popular file sharing client since 2001
+        - More active users than YouTube and Facebook combined
+      However, BitTorrent is a large system with many different mechanisms
+        - Ample room to modify the client, alter behavior
+        - Cheating can happen, not all strategies are fair
+
+===================== Spotify ===========================
+      Uses BT as basic protocol
+          > Uses server for first 15s
+          > Tries to find peers and download from them
+          > Only 8.8% of bytes come from servers
+      When 30s left
+          > Starts searching for next track
+          > Uses sever with 10s to go if no peers found
+==================================

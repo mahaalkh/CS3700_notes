@@ -1,0 +1,286 @@
+-------- BEFORE DNS thing were manual and involved humans ------ 	
+ ---Before DNS, all mappings were in hosts.txt
+		/etc/hosts on Linux
+		C:\Windows\System32\drivers\etc\hosts on Windows
+	Centralized, manual system
+		Changes were submitted to SRI via email
+		Machines periodically FTP new copies of hosts.txt
+		Administrators could pick names at their discretion
+		Any name was allowed
+			christos_server_at_neu_pwns_joo_lol_kthxbye
+  ------- What is wrong with a flat system? ----------
+    Not scalable
+    Hard to enforce uniqueness of names 
+  -----------------------------------
+
+Topics: 
+  1) DNS basics
+  2) DNS security 
+--------------------
+
+
+----------- How do we access the machine connected to the internet without knowing the IP address? ------------
+
+Addresses (e.g IP): 
+  * Computer labels for machines 
+  * Conform to structure of the network 
+
+Names (e.g URLs): 
+   * Human usable labels for machines
+   * Conform to organizational structure
+
+To map from addresses to names: 
+  Use Domain Name System (DNS)
+
+ ----------
+ How does DNS work? 
+  1) Distributed database 
+  2) Simple client/server architecture 
+  3) Hierarchical namespace 
+    How is the heirarchy structured? 
+     Top most: Root  
+     Under the root directly: 
+     		Top Level Domains (TLDs) (e.g edu, com, uk, etc.)
+     Each domain name is a subtree: 
+            .com -> google.com -> mail.google.com
+     Maximum tree depth: 128 
+
+     - Tree is devided into zones and each zone has an administrator who is responsible for each part of the heirarchy
+
+    ---- Server Hierarchy ----
+      Functions of each DNS server:
+		Authority over a portion of the hierarchy
+			No need to store all DNS names
+	 	Store all the records for hosts/domains in its zone
+			May be replicated for robustness
+	 	Know the addresses of the root servers
+			Resolve queries for unknown names
+	   Root servers know about all TLDs
+  ------ Servers ---------
+	> Root Name Servers: (Administered by ICANN, 13 root servers (A -> M) , 6 of them are globally replicated2)
+		  - Responsible for the Root Zone File
+		  	- Lists all the TLDs and who controls them 
+		  	- ~272KB in size 
+    > Local Nameserver and authorities: 
+        Local nameserver handles queries on behalf of clients  
+    > Authoritative nameservers 
+        Know the zone mappings for a subset of heirarchy 
+
+
+
+
+
+
+     ---- advantages of DNS---- 
+      -> can avoid name collisions (no duplication)
+
+
+
+    -------------Basic Domain Name Resolution --------------- 
+    Every host knows a local DNS server
+		Sends all queries to the local DNS server
+	If the local DNS can answer the query, then you’re done
+		1) Local server is also the authoritative server for that name
+		2) Local server has cached the record for that name
+	Otherwise, go down the hierarchy and search for the authoritative name server
+		Every local DNS server knows the root servers
+		Use cache to skip steps if possible
+			e.g. skip the root and go directly to .edu if the root file is cached 
+     --------------------------------------------------------- 
+
+     --------- DNS Packet Format --------
+     32 bits per row:  
+       First row: 
+	     first 16 bits: Transaction ID (TxID)
+	     next 16 bits: Flags
+	   Second row: 
+	      first 16 bits: Question Count 
+	      next 16 bits: Answer Count
+	   Third row: 
+	       first 16 bits: Authority count 
+	       next 16 bits: Additional record count 
+	   The rows after: 
+	      Question and answer data (Resource Records, variable length)
+
+	   DNS is a UDP-based protocol on port 53: 
+	     >> No TCP means no connection
+	     >> TxIDs are needed to correlate requests and responses 
+	     >> Servers as authentication for responses
+         
+         --> Glue Records: 
+            = DNS responses may contain more than a single answer
+            - Known as glue records 
+            - The additional responses can contain any type of record (i.e A, NS, etc)  - NS (Name Server)
+
+
+            Iterative DNS query
+
+
+  ================ DNS Queries and Resource Records ===============
+
+     - DNS queries have two fields: **name** and **type**
+     - Resource record: the response to a query 
+         - response has four fields (name, value, type, TTL)
+     	 - There may be more than one record returned for one query 
+      - Depending on the type of query, the name and value mean different things 
+
+	     ========== DNS types ========
+	     Type = A / AAAA
+	        * Name = domain name 
+	        * Value = IP address (A: IPv4, AAAA: IPv6)
+
+	     Type: NS
+	        * Name = partial domain 
+	        * Value = name of DNS server for this domain 
+
+	        meaning: "go send your request to this other server" 
+
+	     Type: CNAME
+	        * Name = hostname 
+	        * Value = canonical hostname
+	        --- Useful for aliasing ----- 
+	        --- CDNs use this ---- 
+
+	     Type: MX
+	        * Name = domain in email address 
+	        * Value = canonical name of mail server
+	     -------------------------------
+
+ ========= Reverse Lookups ===========
+      IP -> name mappings: 
+        >> Seperate sever hierarchy stores reverse mappings 
+          > Rooted at in-addr.arpa and ip6.arpa
+        >> additional DNS record type: PTR
+           * Name = IP address
+           * Value = domain name 
+    ---------------------------
+
+   =========== DNS as Indirection Service: ======== 
+		DNS gives us very powerful capabilities
+			Not only easier for humans to reference machines!
+
+		Changing the IPs of machines becomes trivial
+			e.g. you want to move your web server to a new host
+			Just change the DNS record!
+    ================================================
+
+    ** One machine can have many aliases
+    ** One domain can map to multiple machines 
+    ----------- 
+    DNS responses may vary based on geography, ISP, etc 
+
+    ======== DNS Propagation =========
+     the amount of time it takes for a name to become accessible caused by caching 
+    ================================== 
+    ================== Importance of DNS ==============
+     DNS is the way to connect to servers without it we cannot easily connect to the internet
+     =================================================== 
+
+
+============== DNS Security =============
+
+------ Denial of Service attacks -----
+   -> flood DNS servers with requests until they fail 
+
+--------- Hijaking DNS ------------
+
+
+    *** 3 types of attacks ***
+   1) Record Injection 
+
+
+   .....
+   -  Record injection attacks no longer work in practice
+     -  All modern DNS servers implement bailiwick checking
+      * Only records related to the requested domain are accepted in responses
+      * In other words, DNS servers are less trusting of additional information
+
+
+
+   2) response spoofing 
+
+   What info does the attacker need to spoof a DNS response?
+     IP address of the target nameserver and true authoritative nameserver
+      Easy, both pieces of info are readily available
+     Source port used by the authoritative nameserver
+      Easy, it must be 53
+     The question in the query
+      Easy, the attacker can choose the targeted domain name
+     Response port used by the target when they made the request
+     TxID in the query
+   Old DNS servers used one port for all queries and incremented TxID monotonically
+    Attacker can query the target DNS server for a domain they control and observe the query at their own DNS server
+    The query reveals the port used by the target, as well as the approximate TxID
+       ==== Conditions for succesful response spoofing ====
+
+    1) Attacker must infer the response port of the target nameserver and TxID
+    2) Attacker’s response must outrace the legitimate response
+    3) The attack must be executed after the target nameserver is queried for a domain that is not in the cache
+      - If the target domain name is already cached, no queries will be sent
+      - The attacker can send the initial query to the nameserver, but if the attack fails the legitimate response will be cached until the TTL expires
+    4) If the attack is successful, the record for a single domain is poisoned
+
+
+
+
+   3) The Kaminsky attack  
+     1) Variation of the response spoofing attack that is much more powerful
+     2) Poisons glue records rather than A records
+       - Attacker repeatedly makes queries for non-existent subdomains of the target domain
+      - Since these subdomains do not exist, they are guaranteed to not be in the target nameservers cached
+    - Attacker then attempts to spoof a response with a poison glue record
+      - The attacker can attempt the attack an infinite number of times until success
+
+
+     3) On success, entire zone is poisoned, rather than a single domain name
+
+     --- Mitigating the Kaminsky Attack ---
+     1) The Kaminsky attack relies on fundamental properties of the DNS protocol 
+       - the ability to respond with NS records and glue to any query 
+
+     2) How do we mitigate it? 
+        a) make it harder to spoof DNS responses
+        b) all modern DNS servers randomize the TxID and query port for every request 
+        c) 2**16 TxIDs * 2**16 query ports = 2**32 messages needed to spoof successfully 
+     ---> almost all DNS servers are fundamentally vulnerable to spoofing attacks 
+   4) infect the taget user's OS with a virus(trojan) 
+      - change entries in /etc/hosts
+         (*----.com ==> evil.com)  
+   5) Man in the middle : DNS is not strongly encrypted or strongly authenticated 
+
+
+
+    >> Threat model and Attacker goals: 
+      a) Active attacker, may send DNS packets
+      b) Remote attacker, may not eavesdrop
+      c) Attacker may control their own domains and DNS servers
+
+     ----------------- More to DNS ---- 
+     A) Caching 
+     B) Other uses 
+       1) Content Delivery Networks (CDNs)
+       2) Different types of DNS loade balancing 
+       3) Dynamic DNS 
+
+     C) DNS and botnets
+
+     
+
+
+------Questions to ask ----
+Explain the three attacks bacause I am not entirely sure 
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+

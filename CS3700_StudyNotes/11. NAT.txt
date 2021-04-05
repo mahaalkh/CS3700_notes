@@ -1,0 +1,63 @@
+------- Why do we need NATs? -------------
+	Problem: consumer ISPs typically only give one IP address per-household
+		Additional IPs cost extra
+		More IPs may not be available
+	Today’s households have more networked devices than ever
+		Laptops and desktops
+		TV, bluray players, game consoles
+		Tablets, smartphones, eReaders
+	============= How to get all these devices online? ======== 
+
+	Idea: create a range of private IPs that are separate from the rest of the network
+		Use the private IPs for internal routing
+		Use a special router to bridge the LAN and the WAN
+	Properties of private IPs
+		Not globally unique
+		Usually taken from non-routable IP ranges (why?)
+	Typical private IP ranges
+		10.0.0.0 – 10.255.255.255
+		172.16.0.0 – 172.31.255.255
+		192.168.0.0 – 192.168.255.255
+-------------------------------
+============ Network Address Translation (NAT) ================
+
+	Why is it needed? 
+	  To allow multiple hosts on a private network communicate with the internet 
+	What is it? 
+	  Special router at the boundry of the privaete network 
+	How does it work? 
+	  Network Address Translation: replaces internal IPs with an external IP (the NATs IP?), could also replace TCP/UDP ports 
+	  ---
+	  Maintains a table of active flows: 
+	    - Outgoing packets initialize a table entry 
+	    - Incoming packets are rewritten based on the table 
+	What are the advatages of using it? 
+	   1) Allows multiple hosts to share a single public IP 
+	   2) Allows migration betwween ISPs:  
+	      even if the public IP address changes, you do not need to reconfigure the machines on the LAN  (only need to reconfigure the NAT?)
+	   3) Load balancing 
+	   	 forward traffic from a single public IP to multiple private hosts 
+	   4) Natural firewall 
+
+	 What are the disadvantages of using it? 
+	    1) Performance/scalability issues 
+	    2) Breaks the layered network abstraction 
+	    3) Breaks end-to-end internet connectivity  (P2P)
+	    4) IP embeded in data payload t(hat the protocol embeds the private IP address into the header of the file sent, then the reciever will get confused about the senders IP address: 
+	    "Suppose that you include the local IP address as part of the application-level payload in your packets. The NAT has no way of knowing that you've done this (it can't possibly understand arbitrary app-level protocols), so the NAT will translate the local IP address in the IP header, but it won't translate the IP address that you embedded in the app-payload. When the packet arrives at the receiver, they may be very confused: the IP address in the IP header is different than the one in the app-payload, and the one in the app-payload is a non-routeable, private IP address.")
+
+	 -- How do we enable (peer to peer) conectivity with NATs? -- 
+	 Hole punching using either the: 
+	   STUN protocol: 
+		 (Session Traversal Utilities for NAT) 
+			1) Use a third-party to echo your global IP address
+			2) Also used to probe for symmetric NATs/firewalls
+				i.e. are external ports open or closed?
+		  --- Problems? --- 
+		  1) Only useful in certain situations: 
+		    a) one peer is behind a symmetric NAT 
+		    b) both peers are behind partial NATs 
+		   2) Not useful when both peers are fully behind full NATs 
+
+	    or TURN (Traversal Using Relays around NAT) protocol: 
+	      basically use a TURN server to communicate with the peer.

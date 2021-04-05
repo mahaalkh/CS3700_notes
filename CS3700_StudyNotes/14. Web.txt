@@ -1,0 +1,306 @@
+-- Web : uses a client - server hierarchy -- 
+
+
+============= Properties ============
+1) Powerful platform for developing and distributing applications 
+    >> Huge user population 
+    >> Relatively easy to develop and deploy cross-platform 
+2) Platform has evolved significantly 
+    >> Very simple model initially 
+    >> A mix pf client and server side components 
+    >> Web services and APIs are now ubiquitous
+
+3) Geared toward and open model 
+    >> On the client-side, all documents, data, and code are visible/modifiable
+    >> can share data/code with other <untrusted> sites 
+
+
+ Problems with this: 
+    -<<<>>>- since one can open any website, computers now become venerable to viruses from malicious users. 
+
+
+
+------ HTTP (Hyper Text Transfer Protocol) and HTML  ------- 
+
+
+In 1991: 
+	In order to display documents on the web, Hypertext Markup Language is used. HTML is a tag based language <a> is the anchor tag to add hyperlinks. 
+
+	HTTP: has many request and document types 
+
+
+
+
+================== HTTP protocol ====================
+  Type of protocol: client/server protocol 
+  Intended usage: downloading HTML documents
+  usage: can be generalized to downloading any kind of file. 
+
+  Message format: - text based protocol, (almost always over TCP)
+                  - stateless 
+
+  Types of messages: 1) requests and 2) responses
+
+  What does a message include? 
+     A) header - required : contains key:value pairs 
+     B) body contains a file (GET) or user data (POST)
+
+  Versions of the protocol: 
+     0.9 and 1.0 are outdated 
+     1.1 is the one currently used and is most common 
+     2.0 has just been ratified
+
+
+  HTTP request format: 
+    0) request line:
+       <method> <URL> <version>  cr(\r) lf(\n) 
+       
+	    Request methods: 
+	      GET: retrieve recource at a given path 
+	      HEAD: identical to GET, but response omits body 
+	      POST: Submit data to a given path, might create resources as new paths 
+	      PUT: Submit data to a given path, creating resource if it exists or modifying existing resource at that path
+	      DELETE: Deletes resources at a given path
+	      TRACE: Echoes request 
+	      OPTIONS: Returns supported HTTP methods given a path 
+	      CONNECT: Creates a tunnel to a given network location 
+
+
+    1) header lines: 
+       <header field name>:<value>  cr(\r) lf(\n) 
+    2) body  
+
+
+
+ HTTP response format: 
+    0) resonse line:
+       <version> <status code> <status message>  cr(\r) lf(\n) 
+
+     HTTP response status codes: 
+     >> 3 digit response code 
+       1XX - informational 
+       2XX - success
+          200 OK
+       3XX - redirection 
+          301 Moved Permanently 
+          302 Moved Temporarily 
+          304 Not Modified 
+       4XX - client error
+          404 Not found
+       5XX - server error           --> closes the socket 
+          505 HTTP Version not supported 
+
+    1) header lines: 
+       <header field name>:<value>  cr(\r) lf(\n) 
+
+    2) body  
+==================================================
+
+
+----------- Web pages -------------
+  -  multiple objects per page, so single page can have 100s of HTTP transactions
+  -<<<>>>- problem: Browser cannot render complete page until all objects are downloaded
+
+ ------------------------------------
+
+
+ ========== HTTP versions ==========
+
+  ==== HTTP 0.9/1.0 ==== 
+   > One request/response per TCP connection 
+      - Simple to implement 
+
+   > Bad interactions with TCP 
+      - For each object, it requires a three way handshake 
+      - Download of each object object begins in slow start 
+   =========================
+
+   ==== HTTP 1.1 ====
+   > Multiplex multiple transfers onto one TCP connection 
+   > Client keeps connection open 
+      >> can send another request after the first completes
+      >> inorder to keep the connection open, must indicate via header (Connection: keep-alive)
+      >> Server must say how long response is, so client knows when done (Content-Length: XXXX)
+    ===================
+   
+   Most flows are HTTP [web is atleast 52% of traffic. Median object size is 2.7K, average is 85K]
+
+   Since HTTP uses TCP, so it is ACK clocked 
+                        likely never to leave slow start 
+                        not great performance 
+
+   Alternatives --> 
+      HTTP 2.0 - aggresively pipelines and multiplexes connections 
+      QUIC - Google's alternative to TCP designed just for HTTP
+    
+ =======================================================
+
+=================== Securing the browser =================
+  >> How does a browser isolate code/data from different pages? 
+     > one page shouldn't be able to interfere with any others
+     > one page shouldn't be able to read private  data stored by any others 
+  >> Challenge : content may mix origins 
+
+    ==  Same Origin Policy - Basic for all classical web security ==
+
+
+======== Cookies: basic mechanism for pesistent state ========
+   -- allows services to store a small amount of data at the client  
+
+   -- Often used for identification, authentication, user tracking 
+
+   -->> Attributes
+      -- Domain and path: restricts resources browser will sent cookies to 
+      -- expiration sets how long cookie is valid
+      -- additional security restriction : HttpOnly, Secure 
+
+   ->> Manipulated by Set-Cookie and Cookie headers 
+
+
+
+=========== Same Origin Policy =============
+  >> The Same-Origin Policy (SOP) states that subjects from one origin cannot access objects from another origin 
+
+     >> SOP is the basis of classical web security 
+     >> there are some exceptions to this policy 
+     >> SOP has been relaxed over time to make controlled sharing easier
+
+     Cookies
+      Domains are the origins 
+      Cookies are the subjects 
+
+
+
+
+========================================
+
+------------- Attacking Web Clients --------------------
+
+---- Web Threat Model ---- 
+  Attacker's goal: steal information from your browser 
+  Browser's goal: isolate code from different origins 
+  Attacker's ability: trick you by clicking a link 
+
+  --- Threat model assumptions --- 
+    >> Attackers cannot intercept , drop, or modify traffic 
+    >> DNS is trustworthy 
+    >> TLS and CAs are trustworthy 
+    >> Scripts cannot escape browser sandbox 
+    >> Browser/plugins are free from vulnerbilities 
+
+  ------------------------------------
+
+
+  Threats : 
+   A) Cookie exfiltration 
+   B) Cross-Site Scripting (XSS)
+       Types: 
+         1) Reflected 
+            Code is included as part of a malicious link
+			Code included in page rendered by visiting link
+
+         2) Stored 
+            Attacker submits malicious code to server
+			Server app persists malicious code to storage
+			Victim accesses page that includes stored code
+
+         3) DOM-based 
+            Purely client-side injection
+
+
+     ------------------------ 
+     Mitigating XSS Attacks 
+       > Client side defenses
+          1) Cookie restrictions - HttpOnly and Secure 
+          2) Client-side filter – X-XSS-   Protection
+				Enables heuristics in the browser that attempt to block injected scripts
+      > Server side defenses 
+           1) Input validation 
+           2) Output filtering 
+    -------------------------------
+   C) Cross-Site Request Forgery (CSRF)
+     CSRF is another of the basic web attacks
+		> Attacker tricks victim into accessing URL that performs an unauthorized action
+		> Avoids the need to read private state (e.g. document.cookie)
+	 Abuses the SOP
+		> All requests to origin D* will include D*’s cookies
+		> … even if some other origin D sends the request to D*  
+
+   ---------------------
+    Mitigating CSRF Attacks 
+    Two main types of defenses
+      1) Referer checking
+		> Leverages the Referer HTTP header, which is automatically added to all requests by the browser
+        > Imperfect solution, may lead to false positives
+      2) CSRF tokens
+        > Random tokens inserted into all forms by the server
+        > POSTed responses must include the corresponding random token
+
+
+ 
+
+
+   
+
+
+=============== HttpOnly Cookies ================
+
+One approach to defending against cookie stealing: HttpOnly cookies
+	Server may specify that a cookie should not be exposed in the DOM
+	But, they are still sent with requests as normal
+Not to be confused with Secure
+	Cookies marked as Secure may only be sent over HTTPS
+Website designers should, ideally, enable both of these features
+Does HttpOnly prevent all attacks?
+	Of course not, it only prevents cookie theft
+	Other private data may still be exfiltrated from the origin
+==================================================
+
+
+
+
+
+============Scaling up the Web Content (look at slides) ==========
+
+Before) a single webserver 
+Then) Replicated Web servers 
+After) Load balancers for the replicated web servers
+Later) CDNs 
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+ 
+
+
+
+    
+
+
+
+
+
+
+
+
+
+

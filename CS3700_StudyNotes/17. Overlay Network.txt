@@ -1,0 +1,264 @@
+﻿#############  Topics #############
+1) Consistent Hashing 
+2) Structured Overlays / DHTs
+
+------------------------------------------------------------------ 
+
+############## How do you map keys to servers? ###############
+    Want: 
+      - deterministic mapping 
+      - as few changes as possible when machines join/leave 
+   =========
+    1) Regular hash table --> not a good decision because used alot of 
+    overhead if one person joins then the mapping changes and alot of the data needs to be moved around. 
+
+  	  Properties of regular hash tables: 
+  	    	a) deterministic -- 
+  	   			formula used: hash(key) % n -> array index
+  	     	 	where n is the number of servers in this case
+  	     	 	
+
+  	   Problems with using a hash table to map keys to servers: 
+
+  	  	a) The size of the network cannot change dynamically because it costs alot to move the data around.
+
+  	  	b) If a server fails then all the data that was mapped to that server needs to relocate.  (alot of overhead)
+
+  	  	c) What happens if half the servers fail? 
+  	  	  	 - would it create a bottle neck in the network because of the imense amount of keys required to get relocated. 
+
+  	  	d) with this hash map a server can have more than it can handle because certain keys could be more popular than the others. 
+
+    2) Consistent hashing: 
+       beneficial properties of consistent hashing: 
+           a) deterministic
+           b) balanced: n servers --> each server gets ~ 1/n keys
+           c) locally sensitive: a server added --> only 1/(n+1) keys need to be moved
+
+           ================
+           benefits: 
+             1. very low over head to relocate keys every time a server is added. 
+
+        What is a consistent hash? 
+          	 - a circular number line from 0 -> 1 (ring)
+          	 	a) hash (str_server) % 256 / 256 -> ring location
+          	 	b) hash (str_key) % 256 / 256 -> ring location
+          	 	c) closest server clockwise to the key is the server that will have that key. 
+
+
+         Problematic scenarios:
+            --- hashing may not result in perfect balance --- 
+            1) what if we only have 2 servers and the servers are located very closely to each other on the ring? 
+              > the keys most probably would be closer to one of the servers over the other so most of the load will be on one server which could lead to the server in running out of memory etc. 
+
+              ------- solution suggested -----
+              hash each server multiple times => each server jhas multiple locations on the ring --> that the load will be balanced. 
+
+              ......
+               What happens if another server joins? 
+                - would the preexisting servers get most of the load because the of the multiple hashing? 
+                - would you have to hash the joining server multiple times? 
+
+
+            --- if a server fails then the data may be lost ---
+              --------------- solution suggested -----------
+              Replicate keys/value pairs on multiple servers. 
+              -- that means that there multiple keys that have the same value? 
+              -- which means that the load that is distributed has duplicates which is needed if we want to still have access to the data even when the server goes down. 
+
+  --------------------------------------------------
+## Consistent Hashing Summary ##
+	1) Simple, powerfull tool for building distributed systems. 
+	   Reason: 
+	   	provides **consistent** deterministic mapping between names and servers. 
+	    called "locality sensitive hashing": Ideal algorithm for systems that scale up or down gracefully. 
+	2) Uses: 
+   		Many systems use consistent hashing. 
+   		 e.g: CDNs, Databases, Overlay networks, ... 
+    3) Problems: 
+     	a)  When we have very few servers the load might not 			balance out very well and we need to fix that hashing 		the servers multiple times. 
+     	b) If a server fails then the data the server has will be 		lost. We need to fix that by having multiple keys to 		one value
+
+     	"
+     	When people design overlay networks, they typically set a parameter ahead of time that determines how many times each peer should hash itself and add itself to the ring. Assuming that all peers are well behaved, this means everyone should be playing by the same set of rules all the time. This behavior is independent of time, or the total number of peers in the system.
+ 
+		Initially, when the number of peers is small, they may need to take on more load. However, this isn't such a huge problem: for example, if there are only 100 peers in the system, there will only be so many files that are shared and downloaded. Once the system scales to to thousands or millions of users, there will be many more files and messages, but now the capacity of the system has also increased commensurately. This is one of the main advantages of structured P2P systems: they scale very gracefully as the number of peers (and thus load) increases."
+------------------------------------------------------------
+############ Layering ###########
+  * layering hides low level details from higher layers 
+
+    	Host       |     Router       |       Host 
+
+	    Application  <=====================> Application 
+	  	 Transport    <=====================> Transport 
+	    Network    	 <====> Network  <====>  Network  
+	    Data Link  	 <====> Data Link  <====>  Data Link 
+	    Physical    <====> Physical  <====>  Physical 
+
+    ----------------
+    Network overlays: 
+       - what if you want to have additional features not supported by IP or TCP? 
+         features: e.g Security, Reliabile - performance based routing, content addressing 
+
+         Overlay an additional routing layer on top of IP that adds additional features. 
+
+        How do we do this? 
+        What are the downsides of doing this? 
+---------------------------------
+########## Network Overlay #############
+ Examples: VPN (Virtual Private Network): IP over IP overlay  
+
+ VPN Layering
+
+	Host          |     Router       |       Host 
+
+    Application  <=====================> Application 
+    P2P Overlay  <=====================> P2P Overlay  
+    Transport    <=====================> Transport 
+    VPN Network  <=====================> VPN Network 
+    Network    	 <===> Network    <===>  Network  
+    Data Link  	 <===> Data Link  <===>  Data Link 
+    Physical     <===> Physical  <===>  Physical 
+
+-------- Revisiting Network layer and ** enhancing it ** -----
+      Function: - Provide natural, resilient routes based on keys
+                      > How can we route based on keys without knowing the IP? 
+                      > basically (key, value) make looking for something 
+                      on a network much easier especially if 
+
+                - Enable new classes of P2P applications 
+                     > allow uncentralized P2P application such that we do not need to 
+                     flood requests to find the data we want; faster look up time (with keys) 
+                     especially when using consistent hashing. 
+
+####### Why do we need structure? ########
+ 	- Difficult to search without structure: 
+ 			>> Centralization can solve it however, it is then the center of liability and also if the the centralized server fails then  the entire system fails with it.             
+ 			>> Any file can be on many machines and any file can be on multiple machines by enabling structure,  alot of overhead can occur in the network due to the flood of queries                    
+### How to build a P2P network with structure? ###
+   		> Give every machine and object a unique name. 
+   		> map from object -> machines
+   		  	Use consistent hashing to find the machine that has a particular object. 
+
+=========================================================
+
+Naive Overlay Network: 
+ Method:
+ 	1) Peers choose random IDs 
+ 	2) the files get sent to the correct location based on hash of the name 
+ 	3) Locate the file by hashing the name
+
+
+ 	-------- problems: 
+ 		- how do you route to the peer without knowing the IP address? 
+ 		- high churn 
+ 		- cannot keep a mapping of IP adresses and hash - requires too much overhead 
+    ------------------
+===========================================================
+
+Structured Overlay Fundamentals: 
+  1) Every node chooses a unique, random ID 
+  		> used for routing and object location
+  		?> helps because of high churn and that IP address of the device can change. 
+  2) Deterministic Key->Node mapping 
+     	> Using consistent hashing
+     	> Allows peer rendezvous (meeting at a selected meeting and location) using a common name. 
+
+  3) Key-based routing 
+   		> Scalable to any network of size N
+   		  - each node needs to know the IP of log(N) other nodes 
+   		> Routing from node A -> B takes at most log(N) hops 
+-------> Advantages of this system: 
+       - Completely decentralized 
+       - Self organizing 
+       - Infinitely scalable
+
+    What assumptions does this system make? 
+       - assumes that the random IDs are unique 
+       -?  assumes that everyone joining has an initial bootstrapper. 
+       - assumes everyone is following the same algorithm  <--  always an assumption 
+============================================================================ Distributed Hash Table ====================
+   Key Question: 
+   Method : Tapestry/Pastry: 
+   	 1) node ID space what does it reperesent? 
+   	      > Node IDs are numbers in a ring 
+   	      > Node IDs are chosen at random
+   	     
+  	 2) How do you route within the ID space? 
+  	  		> Messages for key X is routed to live node with longest prefix match to X (using inceremental prefix routing)
+  	 3) How big are the routing tables? 
+  	     	b log-b-(N) hops
+  	 4) How many hops to a destination (in the worst case)?
+  	         log-b-(N) hops 
+
+
+  	  The difference between Pastry and Tapestry: 
+  	    Pastry Leaf Sets: 
+  	     > Each node has an additional table of the L/2 numerically closest neighbors  (smaller and larger)
+  	     > Uses: 
+  	     		 - Alternate routes 
+  	             - Fault Detection (Keep Alive)
+  	             - Replication of data 
+
+  	  ------- How to join the Pastry overlay -------
+	  	  1) Pick a random ID (X)
+	  	  2) contact an arbitrary bootstrap node
+	  	  3) route a message to X, and discover the current owner 
+	  	  4) Add new node into the ring 
+	  	  5) download routes from new neighbors, update leaf sets
+
+
+  	  ---------- How to leave the Pastry overlay -------
+  	       1) Leaf Set: 
+  	  	   - Leaf set members exchange periodic keep-alive messages  
+  	  	      > handles local failures 
+  	  	   - Leaf set repair: 
+  	  	      > Request the leaf from the farthest node in the leaf set
+
+  	  	   2) Routing Table: 
+  	  	   - Routing table repair: 
+  	  	      > Get tables from peers in row0, row1, ...
+  	  	      > Periodic, Lazy <--- fine since we are repairing the leaf sets periodicaly? 
+  	  	      ??
+  	 ?? Assumes that there is a host at each prfix digit? what do you do if there is no host whith that prefix digit? 
+
+------------------------------------------------------
+Distributed Hash Tables and Consistent Hashing: 
+   1) Mappings are deterministic in consistent hashing
+       - nodes can join and leave --> most data does not move 
+   2) Only local changes impact data placement 
+        - Data is thus replicated among the leaf set 
+
+========= Summary of Structured Overlays ========   
+
+	A namespace
+		For most, this is a linear range from 0 to 2160
+	A mapping from key to node
+		Tapestry/Pastry: keys belong to node w/ closest identifier
+		Chord: keys between node X and its predecessor belong 	to X
+		CAN: well defined N-dimensional space for each node
+
+	A routing algorithm
+		Numeric (Chord), prefix-based (Tapestry/Pastry/	Chimera), hypercube (CAN)
+	Routing state: how much info kept per node
+		- Tapestry/Pastry:  b * log-b-(N) 
+		 ith column specifies nodes that match i digit prefix, but differ on (i+1)th digit
+		- Chord:  Log2N pointers
+			ith pointer points to MyID+ ( N 	* (0.5)i )
+		- CAN: 2*d neighbors for d dimensions
+
+========= Advantages ===========
+	High level advantages
+		Complete 
+		decentralized
+		Self-organizing
+		Scalable and (relatively) robust
+	Applications
+		Reliable distributed storage
+		OceanStore (FAST’03), Mnemosyne (IPTPS’02)
+		Resilient anonymous communication
+		Cashmere (NSDI’05)
+		Consistent state management
+		Dynamo (SOSP’07)
+		Many, many others
+		Multicast, spam filtering, reliable routing, email services, even distributed mutexes		

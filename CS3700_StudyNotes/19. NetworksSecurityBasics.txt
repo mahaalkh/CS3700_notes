@@ -1,0 +1,148 @@
+##### Topics ####
+
+1) Definitions 
+
+2) Principles
+
+3) Crypto 
+
+###############
+
+
+Defining Security: 
+ Policies (specify what we want to enforce) and mechanisms (the means by which we enforce policies) for preserving desirable protection properties over data and resources. 
+
+-------------------
+
+Security properties wanted in a destributed systems 
+
+ - Confidentiality : data must only be released to authorized priciples 
+ - Integrity: data must not be modified in an undetectable manner --> Cryptography 
+ - Authenticity : establishment of identity
+ - Availability : must be accesible when required 
+ - Non-repudiation : tight binding between identity and messages 
+ - Access control: policies specifying how entities can interact with resources  
+ ----------------------------
+
+ Authentication: verification of identity made by a subject on behalf of a principle 
+  >> Involves examination of factors or credentials 
+  >> Desirable properties: unforgablem unguessable, and revocable 
+
+ Authorization follows authentication.
+
+
+ Access Control Matrices: 
+   Given subjects Si in S and objects Oi in O, rights {R,W,X} 
+ 
+
+ Limitation of Access Matrices: 
+    > The unix model is very simple: 
+       Owner, Groups, everyone: read, write, execute 
+     
+    > Not all possible policies can be encoded 
+
+
+
+ Access Control List (ACL):
+   <object, subject, operation> 
+   * Each object has an associated list subject -> operation pairs 
+   * Authorization verified for each request by checking list of tuples 
+   * Used pervasivelt in filesystems and networks  
+
+   Disadvantages: 
+        Infinite permutations of objects, subjects and permutations 
+
+ =======================
+
+High Level Principles: 
+ Economy of Mechanism: Simplicity of design implies a smaller attack surface
+
+ Defense in Depth: Don't depend on a single protection machanism (layer defences)
+
+ Fail-safe Defaults: the absence of explicit permission is equivalent to no permission 
+
+ Complete Mediation: every access to every object must be checked for authorization 
+
+ Open Design:
+  kerchkoff's principle: A cryptosystem should be secure even if everything about the system, except the key, is public knowledge
+
+  Generalization: A system should be secure even if the adversary knows everything about its design 
+
+ Seperation of Privilege: privilege, or authority should only be distributed to subjects that require it 
+    ||| 
+ Least Privilege: subjects should posses only that authority that is required to operate succesfully 
+
+ Work factor: Increase the difficulty of mounting attacks
+
+ Compromise Recording: concede that attacks will occur, but record that fact 
+ ========================================================
+
+
+Cryptography: 
+
+  Cryptography is fundamental: the study and practice of techniques for secure communication in the presence of adversaries 
+
+   Critical for: 
+      - Confidentiality 
+      - Integrity 
+      - Athentication and non-repudiation 
+      - Anonymity 
+
+ Two basic types: 
+
+  A) Symmetric Key Crypto : Algorithms that use a single key for ecryption and decryption 
+
+      - Weakness of Symmetric Key Crypto
+          = How to securely share the keys: 
+
+  B) Assymetric cryptography: 
+     -- Each principle has two keys: public and private 
+     -- A message encrypted with one key must be decrypted by the other
+	 -- Thus, the public key can be sent in-the-clear over the Internet
+
+     RSA == look at slide because coloring helps more in understanding 
+
+      -- encrypting with one key and the only way to decrypt it is with a private key 
+      - Public Key Cryptography  
+
+      in example blue - public 
+                  red - private   
+
+      look at slides since graphical examples are used (31- 36)
+
+      Cryptographic Hash Functions: transform input data into scambled output data 
+       
+      Digital signatures: 
+       What can you infer about a signed message?
+		* The holder of Sa must have produced the signature, since Pa decrypts the hash
+		* The message was not modified, otherwise the hash would not match
+
+  ----------------------------------------------------------
+   Encryption vs Digital Signatures
+
+   Encryption gives: 
+     1) Confidentiality : only the holder of the private key can read the massage 
+     2) Integrity : if the message is modified, it will no longer decrypt properly 
+
+   Encryption does not give: Authetication : you have no idea who used your public key to encrypt the message 
+
+   Digital Signatures: 
+     1) Authentication (weak) : only the holder of the private key could have signed the message 
+     2) Integrity : if the message is modified, the signature will be invalid 
+
+    Digital Signatures does not give: Confidentiality : the message is not encrypted, it's public 
+
+
+    ----------- look at slides (39 - 45) for graphical explaination ---------
+
+
+
+
+
+  
+
+
+
+
+      
+    

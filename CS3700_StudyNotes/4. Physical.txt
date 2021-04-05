@@ -1,0 +1,36 @@
+============= Physical Layer =====================
+
+Function: get the bits accross a physical medium 
+
+Key Challenge:  representing bits in analog 
+--------------------------------------------------
+
+Assumptions: 
+
+1) We have 2 discrete signals - high and low - to encode 1 and 0 
+
+2) Transmission is synchronous 
+
+3) amplitude and duration of signal must be significant 
+
+-----------------------------------------------
+
+
+bit to analog encodings: 
+
+1) Non-return to Zero (NRZ): 1 -> high signal , 0 -> low signal 
+   Problem: long strings of 0 or 1 cause desynchronization 
+
+2) Non-return to Zero Inverted (NRZI): 1 -> make a transition, 0 -> remain the same 
+   Problem: long strings of 0 cause desynchronization 
+   Solution?: encode all 4-bit sequences as 5-bit sequences with no more than one leading 0 and two trailing 0 
+         Tradeoff: efficiency drops to 80%
+
+3) Manchester:  1 -> high to low, 0 -> low to high 
+   -- solves clock skew 
+   --- Bad: haves throughput (2 clock cycles per bit)
+
+
+
+==================================================
+

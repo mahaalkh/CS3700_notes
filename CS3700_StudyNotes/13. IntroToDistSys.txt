@@ -1,0 +1,221 @@
+----- Looking at the application layer, the function is :
+	 - What we need it for
+	 - Implement the app using the network 
+
+--- Key challanges:  
+    1) Scalability 
+    2) Fault tolerance 
+    3) Reliability 
+    4) Security 
+    5) Privacy 
+======================== Distributed Systems ===================
+
+What is a distributed system: 
+   Multiple comuters working together that are connected to a network and exchange information with each other 
+   
+   System has a common goal
+
+
+Distributed system is comprised of nodes where: 
+   A) each Node (host) has its own local memory 
+   B) Hosts are connected via a network 
+
+
+   ---- Topics ---- 
+   1) Brief history of Distributed Systems 
+   2) Examples
+   3) Fundamental Challanges 
+   4) Design decisions 
+  -------------------
+
+=========== History ===========
+- Distributed systems developed in conjunction woth networks 
+
+- Early applications: 
+  - Remote Procedure Calls (RPC)
+  - Remote Access (login, telnet) 
+  - Human-Level messaging (email)
+  - Bullitin boards (Usenet)
+
+== Sabre == the earliest  airline Global Distribution System 
+  (the system that is used in the airports)
+
+ Before: Airlines had a central office with cards for each flight  (involved humans)
+
+ 1960's - built a computerized version of the cards  (removed human from loop)
+   > Disk (drum) with each memory location representing number of seats sold on a flight 
+   > Built network connecting various agencies 
+   > Distributed terminals to agencies    
+
+===============
+
+=== Personal Computers == 
+  > In 1980's, personal computers became popular
+    >> moved away from existing mainframes 
+  > Required developement of many distributed systems like email, DNS, Web, ... 
+
+  > Internet came to dominate 
+
+
+==== Today ==== 
+A) Growth of pervasive and mobile computing 
+  > End users connect via a variety of devices, networks
+  > More challenging to build systems 
+
+B) Popularity of "cloud computing"
+  > can purchase computation and connectivity as a commodity 
+  > Many startups don't oen their servers 
+     >> all data stored in and served from the cloud
+  >>>> Challange: 
+       How do we build secure and reliable systems? 
+
+
+======= Examples of Distributed Systems =======
+A) The web
+   - Has two types of entities: 1) Web browser 2) Web servers 
+   - All communication is over HTTP
+
+B) DNS 
+    - Distributed Database
+      >> Maps  "names" to IP addesses and vice versa 
+    - Hierarchical structure
+       >> Devides up administrative tasks 
+       >> enables clients to efficiently resolve names 
+    - Simple client/server architecture 
+       >> recursive or iterative stratigies for traversing the server hierarchy 
+
+C) BitTorrent 
+    - P2P platform for large content distribution 
+    - All clients are "equal"
+       > Collaboratively download data
+       > use custom protocol over HTTP
+    - Robust if (most) clients fail (or are removed)
+D) Stock Market 
+     - Large distributed system (NYSE, BATs, etc.)
+         >> Many players 
+         >> Economic interests not aligned 
+
+     - All transactions must be in order  
+
+     - Transmission delay is a huge concern 
+
+
+=========== Challenges =============
+
+A) Global knowledge
+	   1) No host has global knowledge 
+	   2) Need to use network to exchange state information 
+	      >> Network Capacity is limited, cannot send everything 
+	   3) Information may be incorrect, out of date, etc. 
+	      >> New information takes time to propagate 
+	      >> Other changes may happen in the meantime
+	   4) --- key issue: how can we detect and address inconsistencies? 
+
+B) Time 
+	  1) Time cannot be measured perfectly 
+	    -> Hosts have different clocks, skew 
+	    -> Network can delay/duplicte messages
+	  2) How do we determine what happened first? 
+	  3) Need to have a more nuanced abstraction to represent time 
+
+C) Failures
+	 "A distributed system is one in which the failure of a computer you didn't even know existed can render your own computer unusable" - Leslie Lamport
+	   >> As systems get more complex, failure is more likely --> must design systems to tolerate failures 
+
+D) Scalability 
+    >> Systems tend to grow over time 
+       >>> how to handle future users, hosts, networks, etc..? 
+
+E) Concurrency 
+   why?) In order to scale, distributed systems must leverage concurrency
+   2) Often have consurrent operations on a single object 
+   3) Solutions: 
+      >> Serialization: make operations happen in defined order
+      >> Transactions: detect conflicts, abort
+      >> Append-only structures: deal with conflicts later
+      >>> ... 
+
+
+F) Security 
+    1) Disttibuted systems often have many different entities 
+    2) Economic incentives for abuse 
+    3) Systems often need to provide:  
+      A) Confidentiality: only intended parties can read
+      B) Integrity: messages atre authenticated
+      C) Availability: system cannot be brought down 
+
+G) Openness
+   1) Can a system be reimplemented or extended?, can anyone develop anew client 
+   2) Requires specification of system/protocol published 
+      >> Often requires stardard body (IETF, etc) to agree 
+      >> Cumbersome process which takes years
+   3) IETF works off of RFC (Request Fro Comment)
+      >> Anyone can punlish, propose a new protocol
+
+
+============ Design Decisions =============
+
+
+Two Primary Architectures: 
+  A) Client-Server 
+  B) Peer-to-peer
+
+Messaging interface: 
+  A) Synchronous
+  B) Asynchronous
+
+Transport Protocol 
+  At a minimum, system designers have two choices: 
+     1) UDP 
+       >> Low overhead 
+       >> no reliability, may increase network conjestion 
+
+     2) TCP  
+        >> highly reliable, fair usage of banwidth 
+        >> high overhead, slow 
+
+    Third choice: make your own protocol on top of UDP  (Very difficult)
+      Examples: 
+         = uTP - used by BitTorrent 
+         = QUIC invented by google , used in Chrome to speed up HTTP 
+
+   Serialization/Marshalling 
+     [] all hosts must be able to exchange data, thus choosing data formats is crucial 
+     [] Considerations: 
+        A) Openness
+        B) Efficiency 
+        C) Versioning
+        D) Langiage support 
+
+   Naming
+     - Need to be able to refer to hosts/processes
+     - Naming decisions should reflect system organization 
+     - Naming must also consider: 
+       a) mobility 
+       b) security 
+       c) scalability 
+       d) convergence
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

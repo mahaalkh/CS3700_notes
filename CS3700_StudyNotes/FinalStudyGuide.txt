@@ -1,0 +1,212 @@
+*************************** NAT ******************************
+How NATs work by modifying IP and port numbers: 
+ - Replace the private IP with the public IP of the NAT, replacing the TCP/UDP ports 
+ >>how>> Maintains a table of active flows which contains the translation from the private IP : port # to the public IP : port #  
+   - outgoing packets creates the entries in the table 
+   - incoming packets are rewritten based on the table  
+
+Advantages of NATs: 
+   - acts like a firewall :: because it only accepts flows that have been asked for from the host behind the NAT 
+   - allows multiple hosts to share one public IP address 
+   - allows migration between ISPs :: because then only the NAT need to be reconfigured because the public only see the configurations of the NAT 
+   - load balancing :: forwards traffic from a single public IP address to multiple private IP address 
+
+Disadvantages of NATs:  
+  - performance/scalabilty issues :: because of needing to rewriting the IP and port # so we need to recalculate the IP and TCP checksum 
+  - breaks the layered abstraction 
+  - breaks end to end internet connectivity (P2P application are not easily used)
+  - IP embedded in the data payload :: if the application layer add the private IP to the header then the receiver will be confused about the what the src IP is 
+
+*************************** DNS ******************************
+ - Explain the DNS naming hierarchy: 
+   > The different types of DNS servers: 
+     A) Root servers: 
+       - responsible for the root zone files :: lists all TLDs and who controls them 
+     B) Authoritative nameservers 
+       - Know the zone mappings for a subset of hierarchy 
+     C) Local nameservers 
+       - handles the queries on behalf of clients , could also be the authoritative server 
+   > The different types of DNS records (NS, A, etc.): 
+      Name :: Value
+      A / AA:  
+        domain name :: IP address (IPv4 if A else IPv6)
+      NS: 
+         domain :: name of the DNS server for the domain  
+      CNAME: 
+         domain :: another name for the domain (cononical hostname)
+      MX: 
+         domain name in email address :: cononical name of nameserver 
+      PTR: 
+         IP  :: domain name
+  Why are there different types of servers? 
+    to distribute and allocate different responsibilies between them 
+  Why is DNS organized as a hierarchy?
+    - devides up administrative tasks && enables clients to effectively resolve names 
+  What is the minimum amount of information needed by the different types of servers and DNS clients in order to function? 
+     - query and the authoritative name server since the authoritative nameserver knows the relevant information that is needed to answer the query 
+  Be able to walk through an example iterative DNS queries. 
+  Be prepared to explain different types of attacks against DNS in detail, as well as and possible defenses:  
+    Threat model and attacker goals: 
+      - active attacker :: may send DNS packets 
+      - remote attacker :: may not eavesdrop 
+      - attacker may control their own domains and DNS servers 
+    A) DOS ::: flood the DNS servers with requests until they fail 
+    B) Record injection: 
+      basically uses query of its own local name server and uses the glue records to say that the NS of the attacked server has the IP of the local name server of the attacker 
+      -- How to mitigate: 
+         - by only accepting records that are related to the requested domain (in use :: bailwick checking)
+    C) Response spoofing :: basically try to respond to the query to the nameserver before the other nameservers resond, in the response you say that the IP of the domain queried is the IP of the your local name server 
+    - Conditions for a successful name spoofing: (know that the source port is 53, and the attacker chooses the domain name)
+      1) Attacker must infer the response port of the target nameserver and TxID
+      2) Attacker’s response must outrace the legitimate response
+      3) The attack must be executed after the target nameserver is queried for a domain that is not in the cache
+        - If the target domain name is already cached, no queries will be sent
+        - The attacker can send the initial query to the nameserver, but if the attack fails the legitimate response will be cached until the TTL expires
+      ===>  If the attack is successful, the record for a single domain is poisoned
+    D) The Kamisky attack: basicaly a more powerful spoofing mechanism using glue records instead of A records 
+      - Attacker repeatedly makes queries for non-existent subdomains of the target domain ::  Since these subdomains do not exist, they are guaranteed to not be in the target nameservers cached
+      - Attacker then attempts to spoof a response with a poison glue record
+      - The attacker can attempt the attack an infinite number of times until success
+       ===>  On success, entire zone is poisoned, rather than a single domain name
+   ---- Mitigating the attack(s)----- 
+        a) make it harder to spoof DNS responses
+        b) all modern DNS servers randomize the TxID and query port for every request 
+        c) 2**16 TxIDs * 2**16 query ports = 2**32 messages needed to spoof successfully 
+     ---> almost all DNS servers are fundamentally vulnerable to spoofing attacks 
+    E) Infect the target OS with a virus (trojan) : ****.com --> evil.com
+    F) Man in the Middle :: since DNS is not strongly encrypted or authenticated && DNS is a  UDP based protocol on port 53
+*************************** Web ***************************
+ Be prepared to compare and contrast the HTTP versions, and explain any performance issues. 
+  > HTTP 0.9/1.0 :: one request per TCP connection which means that loading object was very slow. 
+  > HTTP 1.1 :: keeps the connection of TCP open using the keep-alive part of the header so multiple requests use the same connection & the server must say how long the response is, so client knows when done 
+  > HTTP 2.0 :: agrssively piplines and multiplexes connections 
+   HTTP 2 is a very complex, stateful protocol, but its designed to mitigate these issues. A browser can request an unlimited number of objects over a single HTTP 2 connection, in any order, without waiting for them to finish downloading. Servers may also send objects to clients preemptively.
+ You should be able to state the SOP, and analyze how SOP interacts with different Web features (e.g. cookies, XHR). 
+   SOP --> same origin policy :: subjects from one origin cannot access objects from another origin
+    Domains are origins cookies are subjects 
+ Be able to articulate how XSS and CSRF vulnerabilities work, and be able to identify vulnerabilities in samples of code.
+   A) Cookie exfiltration 
+   B) Cross-Site Scripting (XSS)
+       Types: 
+         1) Reflected 
+            Code is included as part of a malicious link
+      Code included in page rendered by visiting link
+         2) Stored 
+            Attacker submits malicious code to server
+      Server app persists malicious code to storage
+      Victim accesses page that includes stored code
+         3) DOM-based 
+            Purely client-side injection
+     ------------------------ 
+     Mitigating XSS Attacks 
+       > Client side defenses
+          1) Cookie restrictions - HttpOnly and Secure 
+          2) Client-side filter – X-XSS-   Protection
+        Enables heuristics in the browser that attempt to block injected scripts
+      > Server side defenses 
+           1) Input validation 
+           2) Output filtering 
+    -------------------------------
+   C) Cross-Site Request Forgery (CSRF)
+     CSRF is another of the basic web attacks
+    > Attacker tricks victim into accessing URL that performs an unauthorized action
+    > Avoids the need to read private state (e.g. document.cookie)
+   Abuses the SOP
+    > All requests to origin D* will include D*’s cookies
+    > … even if some other origin D sends the request to D*  
+   ---------------------
+    Mitigating CSRF Attacks 
+    Two main types of defenses
+      1) Referer checking
+    > Leverages the Referer HTTP header, which is automatically added to all requests by the browser
+        > Imperfect solution, may lead to false positives
+      2) CSRF tokens
+        > Random tokens inserted into all forms by the server
+        > POSTed responses must include the corresponding random token
+*************************** Unstructured P2P *************************** 
+Be able to discuss the architecture of unstructured P2P networks, as well as identify shortcomings in these designs.
+ - Flat Network: uses flooding for searching --> if the item searched is rare/far away then you cannot get it && 
+ - Hierarchical Network: have a super node which is connected to node ..  query is sent to the supernodes and then the item is found and then sent to the peer that requested the info
+
+*************************** BitTorrent ***************************
+ Be able to explain how BitTorrent works, including the different choke/unchoke mechanisms and the different phases of downloading.
+
+ What are the game theoretic principals that underlie the BitTorrent protocol? the prisoners dilema && tit for tat 
+
+ Be able to discuss security and fairness attacks against the protocol.
+
+*************************** Structured P2P Overlays *************************** 
+ What are the reasons that motivate the creation of structured overlays? 
+   
+ Be able to explain the Pastry/Tapestry protocol in detail:
+  how are node IDs chosen, how do nodes join and leave, 
+  how are routing table structured, etc.
+
+ What is the size of the Pastry routing table, how many hops to any destination in the worst case? 
+   b * log_b_(n) , log_b_(n)
+
+ Be able to explain how these properties are derived from the fundamentals of the protocol.
+
+ What is a DHT and how can you build one on top of a structured overlay?
+
+ Be able to explain what consistent hashing is and how it compares to traditional hashing algorithms.
+
+*************************** Consensus *************************** 
+Be prepared to explain two- and three-phase commit protocols, including the specific situations in which each protocol fails. 
+
+Be able to summarize the FLP and CAP theorems, and apply them to example situations.
+Know Paxos and Raft in laborious detail. 
+Read the Raft paper again, just for good measure.
+
+*************************** SSL/TLS *************************** 
+ - Confidentiality : data must only be released to authorized priciples 
+ - Integrity: data must not be modified in an undetectable manner --> Cryptography 
+ - Authenticity : establishment of identity
+ - Availability : must be accesible when required 
+ - Non-repudiation : tight binding between identity and messages 
+ - Access control: policies specifying how entities can interact with resources  
+ ----------------------------
+Be able to compare and contrast basic types of cryptography (symmetric, asymmetric).
+  A) Symmetric Key Crypto : Algorithms that use a single key for ecryption and decryption  (Weakness of Symmetric Key Crypto = How to securely share the keys) 
+  B) Assymetric cryptography:  (Each principle has two keys: public and private, a message encrypted with one key must be decrypted by the other)
+
+Be prepared to discuss how cryptography can be used to support fundamental security properties like confidentiality, integrity, and authenticity, as well as the role of digital signatures.
+
+ Understand the SSL/TLS protocol in depth, including how sessions are established, and how clients validate certificates.    
+    === TLS Authentication === 
+ 1) During the TLS handshake, the client receive a certificate chain
+ 2) The client must validate the certicate chain to establish trust
+  () Client-side validation checks: 
+     a) does the server's DNS name match the common name in the cert? 
+     b) are there any certs in the chain that are expired?
+     c) Is the CA's signature cryptographically valid? 
+     d) Is the cert of the root CA in the chain present in the client's trusted key store?  
+     e) Is any certificate in the chain revoked? 
+
+ Be able to explain the heirarchical PKI (e.g. CAs) and shortcomings of this centralization of trust. 
+
+ Be prepared to explain why revocation is important, the protocols used for revocation checking, and the various ways in which revocation is broken.
+
+   --- Certificate revocation lists (CRLs) ----- 
+  * CRLs are the original mechanism for announcing and quering he revocation status of certificates 
+  * CAs compile lists of serial numbers of revoked certificates
+     - The url for the lists is included in each certificate issued by the CA 
+     - CRL is signed by the CA to protect integrity 
+  >> clients should check the revocation status of every certificate they encountered
+  ** CRL problems ** 
+   - Latency: additional RTTs of latency are needed to check CRLs before a page will load 
+   - Size: CRLs can grow to be quite large 
+   - Man in the middle attacks: the MitM attackers can block access to the CRL/OCSP urls &&&& browsers default-accept certificates if the revocation status cannot be checked 
+  ---- Online Certificate Status Protocol (OCSP) ---- 
+     - API-style protocol that allows clients to query the revocation status of one or more certificates 
+     - OCSP url is included in OCSP-compliant certificates 
+     - responses are signed by the CA to maintain integrity 
+     - responses also include an expiration date to prevent replay attacks 
+     -- Attacker can still block access to the OCSP server 
+  --- OCSP Must Staple --- 
+    - on the certicate add a response from the CA that the certificate is valid that has a very quick expiration time 
+
+*************************** Anonymous routing *************************** 
+Be able to explain how the Tor system works. 
+What are the key components in the system, how are packets routed, and how is encryption used?
+Be able to explain how these different mechanisms are able to preserve the anonymity of users.

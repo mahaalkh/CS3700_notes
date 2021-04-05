@@ -1,0 +1,189 @@
+﻿####### Topics #######
+1) Defining and measuring time 
+2) Correcting clocks and NTP
+3) Logical Clocks 
+4) Vector Clocks
+
+-------------------------------------------------------------
+
+##### Global time ##### 
+		> Time is relative!
+		> Imposible to tell if two events are simultaneous
+				- If events are causualy connected, we can preserve ordering. 
+
+### Global time in systems ###
+  	Must consider the relativity of time when designing systems
+	  	e.g: high frequency trading system; merging multiple writes to a single object; online games, ... 
+
+========== Defining and Measuring time  ===========
+ ------------- Measuring Real-world time --------------
+ 	* Originally, each town defined noon locally
+     	- Point at which sun highest in the sky
+	* With growth of railroads, this became impractical
+		- Continually have to re-set watches
+		- Hard to set rail schedules
+	* Notion of “time zones” developed
+		- Regions where wall-clock time is the same
+		- Now, need to synchronize clocks
+	-------------------------------------------------------
+	GMT: Greenwich Mean Time
+		Originally, mean solar time at 0º longitude
+		This isn’t really “noon” due to Earth’s axial tilt
+	UT1: Universal Time
+		Modernized version of GMT
+		Based on rotation of Earth, ~86,400 seconds/day
+	UTC: Universal Coordinated Time
+		UT1 + leap seconds
+		Minutes can have 59-61 seconds
+		Since 1972, 25 leap seconds have been introduced
+
+	----------------- Electrical Clocks ---------------------
+	First developed in 1920s
+		Uses carefully shaped quartz crystal
+		Pass current, counts oscillations
+	Most oscillate at 32,768/sec
+		Easy to count in hardware
+		Small enough to fit (~4mm)
+	Typical quartz clock quite accurate
+		Within 15 sec/30 days (6e-6)
+		Can achieve 1e-7 accuracy in controlled conditions
+		Not good enough for today’s applications
+    -------------------- Atomic Clocks ---------------------
+    Based on atomic physics
+		Cool atoms to near absolute zero
+		Bombard them with microwaves
+		Count transitions between energy levels
+	Most accurate timekeeping devices today
+		Accurate to within 10-9 seconds per day
+		E.g., loses 1 second in 30 million years
+	SI second now defined in terms of atomic oscillations
+		9,192,631,770 transitions of cesium-133 atom
+		-------------- International Atomic Time ----------
+		Atomic clocks used to define a number of time standards
+		TAI:  International Atomic Time
+			Avg. of 200 atomic clocks, corrected for time dilation
+		Essentially, a count of the number of seconds passed
+		Count was 0 on Jan. 1, 1958
+====================================================
+
+========== Correcting Clocks and NTP  ===========
+	######## Correctness #######
+	 - check relative to an "ideal" clock 
+	 - when a clock is relatively incorrect, we get skew and drift. 
+	     skew: magnitude difference  == |t` - t|
+	     drift: difference in rates 
+
+	 - say clock is correct within p if: 
+	 	(1 - p) (t` - t) <= H(t`) - H(t) <= (1 + p) (t` - t)
+
+     - Monotonic property: t < t` ==> H(t) < H(t`)
+
+    When a clock is "slow" relative to real time, can reset to real time because it does not break monoticity. 
+
+    When a clock is "fast" relative to real time, we cannot simply reset it to real time because it breaks the monoticity. --> slow down the clock to reset it eventualy -- maintains monoticity.  
+
+===================================================
+
+============== Synchronization between clocks =============
+         
+ 	------- simple  -------
+         A sends current time t to B. 
+
+  		- Assuming we know the delay 
+  		   B sets the time to t + T
+
+  		==> we cannot know the delay all the time because delay varies. 
+  		   - we may know the range of the delay (T): min < T < max
+  		   	 B can set the time to t + (min-max)/2
+  		   Accuracy ~ (min - max)
+
+  		------> problem: we do not have a bound on the delay it can vary because of many reasons.
+   
+   --------- Cristian's method ------
+      ** No assumptions on delay bound ** 
+
+       1) A sends request to B of current time
+       2) B responds with local time T
+       3) A measures RTT (Round Trip Time)
+       4) A sets local time to T + RTT/2
+
+      -> this assumes that the delay is symmetric which is not always the case but the assumption can be used since the time the delays for each machine is very similar unless the networks are different. 
+
+
+     Do this multiple times use overall minimum RTT: accuracy --> RTT/2 - min 
+===========================================================
+
+============== Synchronization in the real world ==========
+	Network Time Protocol (NTP): 
+		Goals: 
+		   - keep the machines synchronized to UTC
+		   - Deal with lengthy losses of connectivity 
+		   - Enable clients to synchronize frequently (scalable)
+		   - Avoid security attacks
+		 
+	    NTP deployed widely today: 
+		 	- uses 64-but value ; epoch is 1/1/1900 (rollover in 2036)
+		 	- Precision: LANs: to 1ms
+		 	             Internet: tp 10s of ms
+
+    NTP in practice: 
+        	- run on UDP port 123: 
+        	- Accuracy on general internet ~ 10ms
+        	- Many networks run local NTP servers
+        	- >> NTP has recently been a vector for DDoS Attacks >> the best practice is for servers to filter requests outside local network
+============================================================
+
+====================== Logical Clocks ======================
+	** even with NTP, time synchronization is still approximate **
+
+	--- Goal: be able to provide some synchronization of events. 
+
+	--------- Logical Ordering ---------
+	  - base ordering on causality
+	  - any message must be sent before received
+
+	  Each host i maintains internal logical clock Li
+		Li is incremented after each event
+		Li logical timestamp is included in each message sent
+		Upon receipt of message with logical timestamp t
+		 - Li = max(Li, t) + 1
+============================================================
+
+
+====================== Vector Clocks =======================
+
+
+	Developed to overcome lack of reverse implication
+		Want L(e1) < L(e2)  ⇒  e1 → e2
+	Processes keep local vector clock Vi
+		Array of logical clocks of length N (# processes)
+		Initially [0,0, … 0]
+	Similar update procedure to logical clocks
+		Vi[i] is incremented after each event
+		Vi is inserted into each message sent
+		Upon receipt of message with vector clock Vk
+			Vi[x] = max(Vi[x], Vk[x]), for all x
+
+
+
+  ------------ Comparing Vector Timestamps -------------
+  	Given 2 vector stampts Vi and Vj 
+  	  a) Vi = Vj iff Vi[x] = Vj[x] for all x
+  	  b) Vi < Vj iff Vi[x] < Vj[x] for all x
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

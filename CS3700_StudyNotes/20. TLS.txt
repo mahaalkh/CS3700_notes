@@ -1,0 +1,152 @@
+--------- Transport Layer Security ------------
+=== SSL/TLS ===
+ * Application-layer protocol for a) confidentiality, b) integrity, and c) authentication between clients and servers
+    * SSL = Secure Socket Layer
+    * Designed to encapsulate HTTP --> HTTPS
+
+ * Transport Layer Security (TLS) is the upgraded standard 
+      * Supesedes SSL: SSL is known to be insecure and should not be used 
+
+ * Sits between transport and application layers which means that applications must be TLS-aware 
+
+ * Both client and server must have an asymmetric keypair
+
+
+
+=== Goals of TLS === 
+ 1) Confidentiality 
+ 2) Integrity 
+ 3) Authentication 
+
+
+ === Certificates === 
+ If you start a new website and you want TLS encryption --> you need a certificate 
+
+ How to get certificates: 
+   1) Generate a certificate your self
+     -1-> use openssl to generate a new asymmetric keypair 
+     -2-> Use openssl to generate a certificate that include your new public key 
+
+     --Chain of Problems-- 
+        self signed --> not signed by trusted CA ---> browsers cannot authenticate your certificate to a trusted CA ---> users will see a scary security warning when they visit the site 
+      
+   2) Pay a CA to sign your certificate 
+
+
+
+ ------------ CAs = Certificate Authorities --------------
+
+ CAs are the roots of trust in TLS PKI 
+    -job-> Issue signed certificates on behalf of third-parties 
+
+    --- Key responsibility of becoming a CA: ---
+      Verify that someone buying a certificate for xxxx.com actually owns xxxx.com 
+
+
+    ---  How to become a CA ---
+       1) create a self-signed root certificate 
+       2) Get all the major browser vendors to include your certificate with there software 
+       3) Keep the secret key private at all costs 
+
+
+ =============================================
+
+ ==== TLS connection establishment ====
+ ... look at the pic on slide 9 in TLS
+
+ ====================================
+
+=== TLS Authentication === 
+ 1) During the TLS handshake, the client receive a certificate chain
+ 2) The client must validate the certicate chain to establish trust
+  () Client-side validation checks: 
+     a) does the server's DNS name match the common name in the cert? 
+     b) are there any certs in the chain that are expired?
+     c) Is the CA's signature cryptographically valid? 
+     d) Is the cert of the root CA in the chain present in the client's trusted key store?  
+     e) Is any certificate in the chain revoked? 
+
+=========================
+
+Types of certificates: 
+ a) Domain Validation (DV) Certificates 
+ b) Extended Validation (EV) Certificates: 
+   --> CA does a background check on you and your company
+   EV certs cost more that DV certs 
+
+
+-- How the browser tells the difference between DV and EV certs?
+  * using the policy number which indicates the EV status 
+  * The browser contains a hard-coded list of policy numbers to identify EV certs (note: this could have been done using a flag since a cert cannot be changed without the private key)
+
+
+==========================
+
+Problems with TLS: 
+ 1) CA trustworthiness 
+ 2) Weak cyphers and keys 
+ 3) Protocol Attacks
+ 4) Man-in-the-middle attacks 
+ 5) Secret key compromise 
+ 6) Implemention Bugs 
+
+============================ 
+
+---- CAs ------
+ 1) trusted third party:
+    -  Certificate signatures are attestations of authenticity for the server and (optionally) the client
+    - TRUST IS BAD AND SHOULD BE MINIMIZED 
+ 2) If a CA signs a cert for a domain and provides it to a malicious principle, TLS can be subverted
+
+ 3) We trust both root CA and intermidiate CAs that have been delegated signing authority 
+
+------- Man in the middle Attack ------ 
+
+1) If Ce is self-signed, the user will be shown a warning
+2) If the attacker steals CBofA and SBofA, then this attack will succeed unless:
+  a) Bank of America revokes the stolen cert
+  b) The client checks to see if the cert has been revoked
+3) If the attacker manages to buy a valid BofA cert from a CA, then the only defense against this attack is certificate pinning (see slide 23 for info)
+
+
+-------- Key compromise ----------
+1) If the private key is compromised then it leads to many devastatinh attacks: 
+   > the attacker can succesfully man in the middle TLS connection (decryption)
+   > the attacker can decrypt historical TLS packets encrypted using the stolen key
+
+-- HOW DO WE PREVENT THIS? keep the key safely hidden 
+
+- even when we change the keypair/certificate it does not solve it because attacker can stil man in the middle connections 
+
+=====================================
+-- CHECKING FOR REVOCATION OF CERTS -- 
+
+  --- Certificate revocation lists (CRLs) ----- 
+  * CRLs are the original mechanism for announcing and quering he revocation status of certificates 
+
+  * CAs compile lists of serial numbers of revoked certificates
+     - The url for the lists is included in each certificate issued by the CA 
+     - CRL is signed by the CA to protect integrity 
+
+  >> clients should check the revocation status of every certificate they encounter 
+
+  ** CRL problems ** 
+   - Latency: additional RTTs of latency are needed to check CRLs before a page will load 
+   - Size: CRLs can grow to be quite large 
+   - Man in the middle attacks: the MitM attackers can block access to the CRL/OCSP urls &&&& browsers default-accept certificates if the revocation status cannot be checked 
+   
+  ---- Online Certificate Status Protocol (OCSP) ---- 
+     - API-style protocol that allows clients to query the revocation status of one or more certificates 
+     - OCSP url is included in OCSP-compliant certificates 
+     - responses are signed by the CA to maintain integrity 
+     - responses also include an expiration date to prevent replay attacks 
+
+     -- Attacker can still block access to the OCSP server 
+
+
+  --- OCSP Must Staple --- 
+    - on the certicate add a response from the CA that the certificate is valid that has a very quick expiration time 
+
+    
+  -----------------------------------------------------
+

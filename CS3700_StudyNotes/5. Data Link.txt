@@ -1,0 +1,24 @@
+============== Data Link Layer ================
+Function: 1) send blocks of data between physical devices 
+          2) Regulate access to the physical media 
+
+ 
+
+ Key Challanges: 
+    1) how to delineate frames? 
+    2) how to detect errors? 
+    3) how to perfoem media access control (MAC)?
+    4) how to recover from and avoid collisions? 
+
+===========================================
+
+Topics: 
+ 1) Framing 
+ 2) Error checking and reliability 
+ 3) Media Access Control: 
+    a) 802.3 (ethernet)
+    b) 802.11 (Wifi)
+
+--------------------------------------------
+
+-------- Framing (how to encode blocks of data) ---------

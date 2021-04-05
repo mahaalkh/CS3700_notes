@@ -1,0 +1,246 @@
+--- Anomymity layer --- 
+Anonymity layer: a layer between presentation and application 
+
+Function: 
+   - hide the source, destination, and content of internet flows from eavesdroppers 
+
+Key challenges: 
+   - defining and quantifying anonymity 
+   - building systems that are resilient to deanonymization 
+   - maintaning performance 
+
+
+
+--- Quantifying Anonymity --- 
+ > How do we calculate how annonymous we are? 
+   - using anonymity sets  (the larger the set = strnger anonymity)
+
+
+--- Other definitions of anonymity --- 
+ > Unlinkability 
+    - from the adversaries perspective, the inability to link two or more items of interest 
+    >> Three parts: 
+      - sender anonymity 
+      - reciever anonymity 
+      - relationship anonymity 
+
+ > Unobservability  
+    - from the adversaries perspective, items of interest are indistiguishable from all other items 
+
+
+----- Cryptography (SSL) ------ 
+  - encryption makes the content unobservable 
+  - no anonymity because the source and destination are trivially linkable 
+
+
+------ Anonymizing Proxies / VPNs ------ 
+ - listening to the packet from source to proxy/VPN --> source is known but the destination is anonymous 
+
+ - listening to the packet from proxy?VPN to desination --> destination is known but the source is anonymous 
+
+ - listening to the packet at the proxy/VPN location --> no anonymity 
+
+
+ ------ Using content to deanonymize ----- 
+ - The NSA ... leverage the common cookies from ad networks, social networks, etc. to track users 
+
+------ Statistical Inference Attacks ------ 
+ - statistical analysis of traffic patterns can compromise anonymity ::: the timing and/or volume of packets 
+
+---------- Data to protect ------- 
+ * Personally Identifiable Information (PII): 
+   - Name, address, phone number, etc. 
+ * OS and browser information 
+    - cookies, etc. 
+ * Language information 
+ * IP address 
+ * Amount of data sent and received 
+ * Traffic timing 
+
+
+--------- Crowds ---------- 
+* Key ideas: 
+   - User's traffic blends into a crowd of users 
+
+   - eavedroppers and endhosts don't know which user originated what traffic 
+
+* High-level implementation: 
+   - Every user runs a proxy called a jondo(unknown person) on their system 
+
+* When a message is received, selects x from 0 to 1 
+  If x > (some number) then forward the message to a random number else deliver the message to the actual receiver 
+
+>> Links between users use public key crypto
+>> Users may appear on the path multiple times 
+>> Crowds require a central server called a "Blender" which:: 
+   - keeps track of who is running jondos 
+   - broadcasts new jondos to existing jondos 
+   - facilitates exchanges of public keys 
+
+** Anonymity in Crowds: 
+  - source anonymity  -- only between jondos or between a jondo and the destination 
+  - destination anonymity is maintained it is hidden by encryption -- only between source and jondo and between jondos 
+
+ ** Evilness in jondos:  
+   > the destination is known because an evil jondo can decrypt the message 
+   > source is somewhat anonymous 
+
+
+
+ **> Summary of Crowds <** 
+  + Good: 
+    ++ Crowds has excellent scalability 
+       > each user helps forward messages and handle load 
+
+    ++ strong source anonymity guarantees 
+
+  - Bad: 
+    -- Very weak destination anonymity :: evil jondos can always see the destination
+    -- weak unlinkability guarantees 
+
+----- Mix networks ------ 
+
+ - A mix is an anonymous proxy 
+
+
+  >> Mixes form a cascade of anonymous proxies 
+
+  >> All traffic is protected with layers of encryption 
+
+
+---- Traffic mixing ---- 
+ 
+  > hinders timing attacks 
+     - messages may be artificially delayed 
+     - temporal correlation is warped 
+
+  > Problems: 
+     - requires lots of traffic 
+     - adds latency to network flows 
+
+
+----- Dummy / Cover traffic ----- 
+ > Idea : send useless traffic to help obfuscate real traffic 
+
+=== Tor: the 2nd generation onion router === 
+
+** A mix network with improvements 
+  - perfect forward secrecy 
+  - introduces guard to improve source anonymity 
+  - takes bandwidth into account when selecting relays 
+  - introduces hidden services 
+
+>> Relays form an anonymous circuit 
+>> All traffic is protected with layers of encryption 
+
+
+
+
+---- Attacks ----  
+ -- Predecessor attacks -- 
+   Attacker's goal:: control first and last relay 
+     > M/N chance for first relays 
+     > M-1/N-1 chance for last relays 
+     > M^2/N^2 chance overall 
+    overtime the chance for the attacker to be in the correct positions improves 
+
+
+---- Circuit lifetime ---- 
+
+** One possible mitigation against the predecessor attack is to increase the circuit lifetime
+  -  E.g. suppose your circuit was persistent for 30 days
+  - Attacker has 1 chance of being selected as guard and exit
+
+**** Problems
+	-- If you happen to choose the attacker as guard and exit, you are screwed
+    -- A single attacker in the circuit (as guard or exit) can still perform statistical inference attacks
+    -- Tor relays are not 100% stable, long lived circuits will die
+
+____ Bottom line: long lived circuits are not a solution ____
+Tor’s default circuit lifetime is 10 minutes
+
+
+--- Selecting relays --- 
+	How do clients locate the Tor relays?
+		= Tor Consensus File
+	Hosted by trusted directory servers
+	  Lists all known relays
+	  IP address, uptime, measured bandwidth, etc.
+	Not all relays are created equal
+	  Entry/guard and exit relays are specially labelled
+	Why?
+	Tor does not select relays randomly
+	  Chance of selection is proportional to bandwidth
+	  Why? Is this a good idea?
+
+ --- Guard relays --- 
+   - help prevent attackers from becoming the first relay 
+   - only certain relays may become guards: 
+     - have long and consistent uptimes
+     - have high bandwidth 
+     - are manually vetted by the Tor community (to reduce the probability of it being an evil relay)
+
+    --- If you choose an evil guard then M/N chance of full compromise ---
+
+--- Exit relays --- 
+  > relays must self-elect to be exit nodes 
+
+  >> reason : 
+    - legal problems 
+      if someone does something malicious or illegal using Tor and the police trace the content to the exit node
+
+
+--- Hidden services --- 
+  > Tor is very good at hiding the source of traffic but the detination is often exposed 
+
+
+  > What is the service whats to be anonymous? 
+     -+- Tor supports hidden services: 
+       - allows you to run a server and have people connect without disclosing the IP or DNS name
+
+===== Perfect Forward Secrecy ===== 
+ > the client negotiates a new public key pair each relay 
+
+ > original keypair are only used for signatures (to verify the authenticity of messages)
+
+
+====== Avoiding Censorship ======
+ ------ Tor Bridges ------  
+
+	used to help people in countries that are in other parts of the world (that block Tor traffic) connect to Tor by having Tor proxies that are not publicly known 
+ 
+
+ ------ Obfuscating Tor Traffic ------ 
+
+   > Bridges alone may insufficient to get around all types of censorship 
+
+   > Tor adopts a pluggable transport design 
+    - Tor traffic is forwarded to an obfuscation program 
+    - Obfuscator transforms the Tor traffic to look like some other protocol: 
+      - BitTorrent, HTTP, streaming audio, etc.
+
+    - Deobfuscator on the receiver side extracts the Tor data from encoding 
+
+ =========
+
+ --- Anonymous P2P Networks --- 
+  > Goal: enable censorship resistant, anonymous communication and file storage 
+     - content is generated anonymously 
+     - content is stored anonymously 
+     - content is highly distributed and replicated, making it difficult to destroy 
+
+
+     Examples: 
+       - FreeNet 
+       - GNUnet 
+
+
+
+
+
+
+
+
+
+
+

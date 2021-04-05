@@ -1,0 +1,312 @@
+
+
+==== Distributed Consensus and Fault Tolerance ==== 
+
+
+========== Black Box online services ==========
+  - We tend to treat online services as black boxes 
+    - Data goes in and we assume that the output is correct 
+    - we have no idea how the service is implemented 
+================================================
+
+======= How are large services implemented? ======
+  Different types of services may have different requirements 
+  which leads to different design decisions 
+ ----------- Centralization ----------
+   Advantages: 
+      1) easy to setup and deploy 
+      2) Consistency is guaranteed (if teh software is implemented correctly)
+   Disadvantages (shortcomings): 
+      1) No load balancoing 
+      2) single point of failure 
+ -------------------------------------
+
+----------------------------------------------------------------
+	-- Sharding  == seperating the content onto more than one server based on values --
+
+	Advantages: 
+	 1) Better load balancing 
+	 2) If done intellegently, may allow incremental scalability 
+
+	Disadvantages: 
+	  1) Failures are still devastating 
+----------------------------------------------------------------
+
+
+----------- Replication ----------
+  Advantages: 
+      1) Better load balancing 
+      2) Resilience against failure; high availability 
+
+  Disadvatanges: 
+      1) harder to maintain consistency 
+
+-------------------------------------
+
+
+---  Consistency Failures --- 
+Failures due to the network  
+
+--- Byzantine Failures ---
+Failure due to malice 
+-----------------------------------------------------------------
+
+===================================================================
+
+
+======== Problem and Definitions ==========
+ WANT: Build a distributed system that meets the following goals: 
+       A) The system should be able to reach consensus (general agreement)
+       B) The system should be consistent (data should be correct no integrity violations)
+       C) The system should be highly available (data should be accessible even in the face of arbitrary failures)
+
+ CHALLENGES: 
+        A) Many different failure modes 
+        B) Theory tells us that these goals are impossible to achieve 
+
+================================================
+Topics: 
+ 1) Distributed Commits 
+ 2) Theory (FLP and CAP)
+ 3) Quorums (Paxos)
+
+===============================================
+
+
+=============== Forcing consistency ========
+If consistency is guaranteedm then reaching consensus is trivial 
+
+--- Distributed commit problem --- 
+  >> Application that performs operations on multiple replicas or databases [we want to guarantee that all replicas get updated or none do] 
+  >> The problem 
+     1) Operation is committed when all participants can perform the action 
+     2) Once a commit decision is reached, all participants must perform the action 
+  -------> two steps ==> Two phase commit protocol 
+
+  -------------------- Transactions --------------
+  If any individual action fails, the whole transaction fails (failed transactions have no side effect)
+
+  Incomplete results during transactions are hidden 
+  -----------------------------------------------
+
+  ------ ACID Properties -------
+    Traditional databases support: 
+      Atomicity : all or none
+      Consistency : there are no violations of database integrity 
+      Isolation : partial results from incomplete transactions are 				hidden 
+      Durability : the effects of committed transactions are 				    permanent 
+
+  ---------------------------------
+
+ =========== two phase commits (2PC) ===========
+
+   >>> 2PC is a protocol for implementing transactions in a distributed setting
+
+   Protocol: 
+     > Operates in rounds 
+     > Assume we have {leader = coordinator that manages transactions} 
+     > Each replica states that it is {ready to commit} 
+     > Leader decides the outcome and instructs replicas to {commit} or {abort}
+
+   >>> Assuming we have no byzantine faults 
+
+   ------ failure modes ------
+   1) Replica Failure 
+      a) before or during the initial promise 
+      b) before or during the commit 
+
+   2) Leader Failure 
+      a) before recieving all promises 
+      b) before or during sending commits 
+      c) before recieving all commited messages 
+
+       --------------------- 
+       What happens if the leader crashes?
+			Leader must constantly be writing its state to permanent storage
+			It must pick up where it left off once it reboots
+			---- 
+			If there are unconfirmed transactions
+				Send new write messages, wait for “ready to commit” replies
+			If there are uncommitted transactions
+				Send new commit messages, wait for “committed” replies
+			Replicas may see duplicate messages during this process
+					Thus, it’s important that every transaction have a unique txid
+	 -------------------- 
+	 ------- Allowing progress ---------
+      KEY PROBLEM: what is the leader crashes and never recovers? 
+            by default, the replicas block until contacted by the leader 
+
+      HOW CAN WE PROGRESS WITHOUT LEADER? 
+         under limited circumstances: 
+            a) after sending a "ready to commit" message, each replica starts a timer 
+            b) the first replica whose timer expires selects itself as the new leader 
+            c) query the other replicas for their status 
+            d) send "commits" to all replicas if they are all "ready"
+       IF A REPLICA CRASHES OR IS UNREACHABLE, DEADLOCK IS UNAVIODABLE   
+
+  ----------------- 2PC Summary -----------------
+  Message complexity: O(2n) , where n is the number of servers 
+  Advantages: guarantees consistency 
+  Disadvantages: 
+    a) write performances suffers if there are failures during the commit phase 
+    b) Does not scale gracefully 
+    c) A pure 2PC system blocks all writes if the leader fails
+    d) Smarter 2PC systems still blocks all writes is the leader +1 replica fail 
+
+  2PC sacrifices >availability< in favor of >consistency< 
+=======================================================
+  
+
+
+============ Three Phase Commit (3PC) ===========
+  - Add an additional round of communication : "prepare to commit"
+  >> state of the system can always be deduced by a subset of alive replicas that can communicate with each other unless there are partitions 
+
+  3PC is not robust against network partitions 
+    Network partition: a split in the network such that full n-to-n connectivity is broken 
+
+    Partitions split the network into one or more disjoint networks 
+
+
+    How can a network partition occur? 
+      1) A switch or a router may fail, or it may recieve an incorrect routing rule 
+      2) A cable connecting two racks of servers may develop a fault 
+
+ ------------ 3PC Summary ---------- 
+    Message complexity: 3n, n being the number of servers 
+
+    Advantages: allows the system to make progress under more failure conditions 
+
+    Disadvantages: 
+        a) extra round of communication make 3PC even slower that 2PC
+        b) does not work if the network is partitioned --> becomes inconsistent
+
+    In practice nobody uses 3PC
+
+ --------------------------------------
+===================================================================
+===================================================================
+
+=========== Theory (FLP and CAP) =============
+
+ WANT: Build a distributed system that meets the following goals: 
+       A) The system should be able to reach consensus (general agreement)
+       B) The system should be consistent (data should be correct no integrity violations)
+       C) The system should be highly available (data should be accessible even in the face of arbitrary failures)
+
+ Achieving these goals is hard: 
+      1) huge number of faikure modes 
+      2) Network partitions are difficult to cope with 
+      3) Byzantine failures
+  -------------------------------
+
+
+  ASSUMPTIONS: the network is synchronous and reliable 
+         > algorithm can be divided into discreet rounds 
+         > If a message from r is not recieved in a round, then r must be faulty 
+
+         > During each round, r may send m <= n messages, where n is the total number of replicas
+           > r might crash before sending all n messages 
+
+ QUESTION: if we tolerate f total failure (f < n), how many rounds of communication do we need to guarantee consensus?  
+
+ ANSWER: f+1  rounds 
+
+
+
+
+--------- consensus in a synchronus system ---------
+* Initialization: 
+   > all replicas choose a value of 0 or 1 or ... 
+* Properties: 
+    a) Agreement 
+    b) Validity 
+    c) Termination 
+
+
+* Algorithm Sketch: 
+   > Each replica maintain a map M of all known values 
+   > Each round, broadcast M to all other replicas 
+   > Algorithm terminates when all non-faulty replicas have the values from all other non-faulty replicas 
+
+
+  --- look at slides (46) ---
+
+
+
+
+---------------- More Realistic Models ----------------
+
+
+-------------- FLP ---------------- 
+ ASSUMPTION: network is asynchronous and reliable 
+           all faults are crash faults (if a replica has a problem it crashes and never wakes up) 
+
+   
+ 
+--- look at slides (49 ...) --- 
+
+
+
+FLP states that perfect consistency is impossible
+Practically, we can get close to perfect consistency, but at significant cost
+	e.g. using 3PC
+	Availability begins to suffer dramatically under failure conditions
+Is there a way to formalize the tradeoff between consistency and availability?
+
+
+
+--------------------------------- 
+
+------- CAP Theorem ------ 
+  Consistency 
+  Availability
+  network Partition tolerance 
+
+  No system can simulaneously achieve C , A and P  
+
+  Interpretation "C, A and P: choose 2"
+  We have to have network Partition tolerance  so a more correct interpratation is: 
+  "C and A choose 1"
+
+  --- look at slide 52 ... --- 
+  ------------------------------------------------
+
+  ==========================================================
+
+
+  Quorum Systems and others ---- look at the rest of the slides 
+
+
+===========================
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

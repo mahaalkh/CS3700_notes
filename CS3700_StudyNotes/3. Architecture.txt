@@ -1,0 +1,43 @@
+Because networks are built from many components, we use a laying abstraction to help us in making all the components work together and allow addition of more components in each layer 
+
+
+--------------------------------------------------
+The ISO OSI model: 
+ 
+look at slides for the model 
+
+basically the end hosts have these layers:  
+
+Application 
+
+Presentation 
+
+Session 
+
+Transport 
+
+Network 
+
+Data Link
+
+Physical 
+
+
+The connection between the two hosts have these layers: 
+
+Network 
+
+Data Link 
+
+Physical 
+
+-----------------------------------------------------
+Layer Features look at the table on cheat sheet. 
+---------------------------------------------------
+
+The end to end arguement: 
+
+
+
+
+======================================== 
